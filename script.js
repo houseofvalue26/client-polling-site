@@ -5,6 +5,8 @@ const JSONBIN_CONFIG = {
     baseUrl: 'https://api.jsonbin.io/v3'
 };
 
+
+
 // Initialize vote data structure
 let pollData = {
     1: { morning: 0, afternoon: 0, evening: 0 },
@@ -16,24 +18,26 @@ let pollData = {
 let dataCache = {
     data: null,
     timestamp: 0,
-    ttl: 30000 // 30 seconds cache
+    ttl: 30000
 };
 
-// Show loading indicator for specific elements
-function showElementLoading(elementId, show = true) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        if (show) {
-            element.style.opacity = '0.6';
-            element.style.pointerEvents = 'none';
-        } else {
-            element.style.opacity = '1';
-            element.style.pointerEvents = 'auto';
-        }
-    }
+// Check if user has voted
+function hasVoted() {
+    return localStorage.getItem('hasVoted') === 'true';
 }
 
-// Show minimal loading indicator
+// Mark user as voted
+function markAsVoted(vote) {
+    localStorage.setItem('hasVoted', 'true');
+    localStorage.setItem('userVote', vote);
+}
+
+// Get user's vote
+function getUserVote() {
+    return localStorage.getItem('userVote');
+}
+
+// Show loading indicator
 function showQuickLoading(show = true) {
     let indicator = document.getElementById('quick-loading');
     
@@ -53,9 +57,8 @@ function isCacheValid() {
     return dataCache.data && (Date.now() - dataCache.timestamp) < dataCache.ttl;
 }
 
-// Load data with caching and timeout
+// Load data from server
 async function loadDataFromServer(useCache = true) {
-    // Return cached data if valid
     if (useCache && isCacheValid()) {
         pollData = { ...dataCache.data };
         return pollData;
@@ -64,9 +67,8 @@ async function loadDataFromServer(useCache = true) {
     try {
         showQuickLoading(true);
         
-        // Set a timeout for the request
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         
         const response = await fetch(`${JSONBIN_CONFIG.baseUrl}/b/${JSONBIN_CONFIG.binId}/latest`, {
             method: 'GET',
@@ -85,7 +87,6 @@ async function loadDataFromServer(useCache = true) {
 
         const data = await response.json();
         
-        // Update cache
         dataCache = {
             data: { ...data },
             timestamp: Date.now(),
@@ -93,8 +94,6 @@ async function loadDataFromServer(useCache = true) {
         };
         
         pollData = data;
-        
-        // Save to localStorage as backup
         localStorage.setItem('pollData', JSON.stringify(pollData));
         localStorage.setItem('pollDataCache', JSON.stringify(dataCache));
         
@@ -103,13 +102,11 @@ async function loadDataFromServer(useCache = true) {
     } catch (error) {
         console.warn('Server load failed, using fallback:', error.message);
         
-        // Try cached localStorage data
         const savedCache = localStorage.getItem('pollDataCache');
         const savedData = localStorage.getItem('pollData');
         
         if (savedCache && savedData) {
             const cache = JSON.parse(savedCache);
-            // Use localStorage cache if it's less than 5 minutes old
             if ((Date.now() - cache.timestamp) < 300000) {
                 pollData = JSON.parse(savedData);
                 dataCache = cache;
@@ -117,7 +114,6 @@ async function loadDataFromServer(useCache = true) {
             }
         }
         
-        // Final fallback to default structure
         return pollData;
         
     } finally {
@@ -125,14 +121,14 @@ async function loadDataFromServer(useCache = true) {
     }
 }
 
-// Optimized save with retry logic
+// Save data to server
 async function saveDataToServer(retries = 2) {
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             showQuickLoading(true);
             
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             
             const response = await fetch(`${JSONBIN_CONFIG.baseUrl}/b/${JSONBIN_CONFIG.binId}`, {
                 method: 'PUT',
@@ -150,14 +146,12 @@ async function saveDataToServer(retries = 2) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Update cache immediately
             dataCache = {
                 data: { ...pollData },
                 timestamp: Date.now(),
                 ttl: 30000
             };
             
-            // Save to localStorage
             localStorage.setItem('pollData', JSON.stringify(pollData));
             localStorage.setItem('pollDataCache', JSON.stringify(dataCache));
             
@@ -167,12 +161,10 @@ async function saveDataToServer(retries = 2) {
             console.warn(`Save attempt ${attempt + 1} failed:`, error.message);
             
             if (attempt === retries) {
-                // Final fallback - save locally only
                 localStorage.setItem('pollData', JSON.stringify(pollData));
                 throw error;
             }
             
-            // Wait before retry (exponential backoff)
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         } finally {
             showQuickLoading(false);
@@ -180,23 +172,18 @@ async function saveDataToServer(retries = 2) {
     }
 }
 
-// Preload data on page load
+// Preload data
 function preloadData() {
-    // Load cached data from localStorage immediately
     const savedCache = localStorage.getItem('pollDataCache');
     const savedData = localStorage.getItem('pollData');
     
     if (savedCache && savedData) {
         const cache = JSON.parse(savedCache);
-        // Use localStorage data if it's less than 2 minutes old for instant loading
         if ((Date.now() - cache.timestamp) < 120000) {
             pollData = JSON.parse(savedData);
             dataCache = cache;
-            
-            // Update UI immediately with cached data
             updateAllResults();
             
-            // Then fetch fresh data in background
             loadDataFromServer(false).then(() => {
                 updateAllResults();
             });
@@ -208,35 +195,20 @@ function preloadData() {
     return false;
 }
 
-// Update all poll results
-function updateAllResults() {
-    Object.keys(pollData).forEach(pollId => {
-        if (getTotalVotes(pollId) > 0) {
-            updateResults(pollId);
-        }
-    });
-}
-
-// Check if user has already voted for a specific poll
-function hasVoted(pollId) {
-    return localStorage.getItem(`voted_${pollId}`) === 'true';
-}
-
-// Mark user as voted for a specific poll
-function markAsVoted(pollId) {
-    localStorage.setItem(`voted_${pollId}`, 'true');
-}
-
 // Calculate total votes for a poll
 function getTotalVotes(pollId) {
     return Object.values(pollData[pollId]).reduce((sum, votes) => sum + votes, 0);
 }
 
-// Update results display (optimized)
+// Update all results
+function updateAllResults() {
+    Object.keys(pollData).forEach(pollId => {
+        updateResults(pollId);
+    });
+}
+
+// Update results display
 function updateResults(pollId) {
-    const resultsDiv = document.getElementById(`results-${pollId}`);
-    if (!resultsDiv) return;
-    
     const totalVotes = getTotalVotes(pollId);
     
     // Update total votes display
@@ -245,96 +217,129 @@ function updateResults(pollId) {
         totalElement.textContent = totalVotes;
     }
     
-    // Batch DOM updates
-    const updates = [];
+    // Update each option's percentage and progress bar
     Object.keys(pollData[pollId]).forEach(option => {
         const votes = pollData[pollId][option];
         const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
         
-        const progressBar = resultsDiv.querySelector(`[data-option="${option}"].progress`);
-        const percentageSpan = resultsDiv.querySelector(`[data-option="${option}"].percentage`);
+        const progressBar = document.querySelector(`[data-poll="${pollId}"][data-option="${option}"].progress`);
+        const percentageSpan = document.querySelector(`[data-poll="${pollId}"][data-option="${option}"].percentage`);
         
         if (progressBar && percentageSpan) {
-            updates.push(() => {
-                progressBar.style.width = `${percentage}%`;
-                percentageSpan.textContent = `${percentage}% (${votes} votes)`;
-            });
+            progressBar.style.width = `${percentage}%`;
+            percentageSpan.textContent = `${percentage}% (${votes} votes)`;
         }
     });
-    
-    // Apply all updates at once
-    updates.forEach(update => update());
-    
-    // Show results
-    resultsDiv.style.display = 'block';
 }
 
-// Optimized vote handler
+// Get option display text
+function getOptionDisplayText(vote) {
+    const optionMap = {
+        '1-morning': 'Meeting Time: Morning (9-11 AM)',
+        '1-afternoon': 'Meeting Time: Afternoon (1-3 PM)',
+        '1-evening': 'Meeting Time: Evening (5-7 PM)',
+        '2-speed': 'Service Priority: Faster response times',
+        '2-quality': 'Service Priority: Higher quality deliverables',
+        '2-communication': 'Service Priority: Better communication',
+        '2-pricing': 'Service Priority: More competitive pricing',
+        '3-very-satisfied': 'Satisfaction: Very Satisfied',
+        '3-satisfied': 'Satisfaction: Satisfied',
+        '3-neutral': 'Satisfaction: Neutral',
+        '3-dissatisfied': 'Satisfaction: Dissatisfied',
+        '3-very-dissatisfied': 'Satisfaction: Very Dissatisfied'
+    };
+    
+    return optionMap[vote] || vote;
+}
+
+// Handle vote submission
 async function handleVote(event) {
     event.preventDefault();
     
     const form = event.target;
-    const pollId = form.dataset.poll;
     const formData = new FormData(form);
-    const selectedOption = formData.get(`poll${pollId}`);
+    const selectedVote = formData.get('vote');
     
-    if (!selectedOption) {
-        alert('Please select an option before voting.');
+    if (!selectedVote) {
+        alert('Please select one option before voting.');
         return;
     }
     
-    if (hasVoted(pollId)) {
-        alert('You have already voted on this poll.');
+    if (hasVoted()) {
+        alert('You have already voted. You can only vote once.');
         return;
     }
     
-    // Disable form immediately
+    // Parse the vote (format: "pollId-option")
+    const [pollId, option] = selectedVote.split('-');
+    
+    // Disable form
     const inputs = form.querySelectorAll('input');
     const button = form.querySelector('button');
     inputs.forEach(input => input.disabled = true);
     button.disabled = true;
     button.textContent = 'Submitting...';
     
-    // Optimistic update - update UI immediately
-    pollData[pollId][selectedOption]++;
+    // Optimistic update
+    pollData[pollId][option]++;
     updateResults(pollId);
-    markAsVoted(pollId);
     
     try {
-        // Save to server in background
+        // Save to server
         await saveDataToServer();
         
-        button.textContent = 'Voted!';
-        showSuccessMessage(form, 'Thank you for your vote!');
+        // Mark as voted
+        markAsVoted(selectedVote);
+        
+        // Show voted state
+        showVotedState();
+        
+        // Show success message
+        showSuccessMessage('Thank you for your vote! Your response has been recorded.');
         
     } catch (error) {
         console.error('Error submitting vote:', error);
         
         // Revert optimistic update
-        pollData[pollId][selectedOption]--;
+        pollData[pollId][option]--;
         updateResults(pollId);
-        localStorage.removeItem(`voted_${pollId}`);
         
         // Re-enable form
         inputs.forEach(input => input.disabled = false);
         button.disabled = false;
-        button.textContent = 'Vote';
+        button.textContent = 'Submit My Vote';
         
-        showErrorMessage('Failed to submit vote. Please try again.');
+        showErrorMessage('Failed to submit your vote. Please try again.');
     }
 }
 
-// Show success message (optimized)
-function showSuccessMessage(form, message) {
+// Show voted state
+function showVotedState() {
+    const votingSection = document.getElementById('voting-section');
+    const voteForm = document.getElementById('vote-form');
+    const alreadyVoted = document.getElementById('already-voted');
+    const userVoteDisplay = document.getElementById('user-vote-display');
+    
+    voteForm.style.display = 'none';
+    alreadyVoted.style.display = 'block';
+    
+    const userVote = getUserVote();
+    if (userVote) {
+        userVoteDisplay.textContent = getOptionDisplayText(userVote);
+    }
+}
+
+// Show success message
+function showSuccessMessage(message) {
     const successMessage = document.createElement('div');
     successMessage.className = 'success-message';
     successMessage.textContent = message;
-    form.parentNode.insertBefore(successMessage, form);
+    document.querySelector('.container').insertBefore(successMessage, document.querySelector('main'));
     
-    setTimeout(() => successMessage.remove(), 3000);
+    setTimeout(() => successMessage.remove(), 4000);
 }
 
-// Show error message (optimized)
+// Show error message
 function showErrorMessage(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
@@ -346,34 +351,31 @@ function showErrorMessage(message) {
     }, 5000);
 }
 
-// Background refresh (less frequent)
+// Background refresh
 async function backgroundRefresh() {
     try {
-        await loadDataFromServer(false); // Force fresh data
+        await loadDataFromServer(false);
         updateAllResults();
     } catch (error) {
         console.warn('Background refresh failed:', error);
     }
 }
 
-// Initialize the application (optimized)
+// Initialize the application
 async function init() {
-    // Try to load cached data first for instant display
+    // Try to load cached data first
     const hasCachedData = preloadData();
     
-    // Set up forms immediately
-    document.querySelectorAll('.poll-form').forEach(form => {
-        const pollId = form.dataset.poll;
-        form.addEventListener('submit', handleVote);
-        
-        if (hasVoted(pollId)) {
-            const inputs = form.querySelectorAll('input');
-            const button = form.querySelector('button');
-            inputs.forEach(input => input.disabled = true);
-            button.disabled = true;
-            button.textContent = 'Already Voted';
-        }
-    });
+    // Set up form
+    const voteForm = document.getElementById('vote-form');
+    if (voteForm) {
+        voteForm.addEventListener('submit', handleVote);
+    }
+    
+    // Check if user has already voted
+    if (hasVoted()) {
+        showVotedState();
+    }
     
     // If no cached data, load from server
     if (!hasCachedData) {
@@ -381,31 +383,69 @@ async function init() {
         updateAllResults();
     }
     
-    // Add refresh button
     addRefreshButton();
 }
 
 // Add refresh button
 function addRefreshButton() {
     const refreshButton = document.createElement('button');
-    refreshButton.textContent = '🔄 Refresh';
+    refreshButton.textContent = '🔄 Refresh Results';
     refreshButton.className = 'refresh-btn';
     refreshButton.onclick = async () => {
         await loadDataFromServer(false);
         updateAllResults();
         
-        // Show quick feedback
         refreshButton.textContent = '✓ Updated';
         setTimeout(() => {
-            refreshButton.textContent = '🔄 Refresh';
+            refreshButton.textContent = '🔄 Refresh Results';
         }, 1500);
     };
     
     document.querySelector('header').appendChild(refreshButton);
 }
 
-// Reduced auto-refresh frequency
-setInterval(backgroundRefresh, 60000); // Every 60 seconds instead of 30
+// Auto-refresh every 60 seconds
+setInterval(backgroundRefresh, 60000);
 
 // Start the application
 document.addEventListener('DOMContentLoaded', init);
+
+// Admin reset function
+async function resetAllPolls() {
+    if (confirm('Are you sure you want to reset all poll data? This cannot be undone.')) {
+        pollData = {
+            1: { morning: 0, afternoon: 0, evening: 0 },
+            2: { speed: 0, quality: 0, communication: 0, pricing: 0 },
+            3: { 'very-satisfied': 0, 'satisfied': 0, 'neutral': 0, 'dissatisfied': 0, 'very-dissatisfied': 0 }
+        };
+        
+        try {
+            await saveDataToServer();
+            localStorage.clear();
+            location.reload();
+        } catch (error) {
+            showErrorMessage('Failed to reset polls on server.');
+        }
+    }
+}
+
+// Add admin reset button
+document.addEventListener('DOMContentLoaded', () => {
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'Reset All Polls (Admin)';
+    resetButton.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #e53e3e;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        z-index: 1000;
+    `;
+    resetButton.onclick = resetAllPolls;
+    document.body.appendChild(resetButton);
+});
