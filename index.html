@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Polling System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Client Polling System</h1>
+            <p>Share your feedback on our questions below</p>
+        </header>
+
+        <main>
+            <!-- Poll 1 -->
+            <div class="poll-container" id="poll-1">
+                <h2>What is your preferred meeting time?</h2>
+                <form class="poll-form" data-poll="1">
+                    <label class="option">
+                        <input type="radio" name="poll1" value="morning">
+                        <span class="option-text">Morning (9-11 AM)</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll1" value="afternoon">
+                        <span class="option-text">Afternoon (1-3 PM)</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll1" value="evening">
+                        <span class="option-text">Evening (5-7 PM)</span>
+                    </label>
+                    <button type="submit" class="vote-btn">Vote</button>
+                </form>
+                <div class="results" id="results-1" style="display: none;">
+                    <h3>Results:</h3>
+                    <div class="result-item">
+                        <span>Morning (9-11 AM)</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="morning"></div>
+                        </div>
+                        <span class="percentage" data-option="morning">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Afternoon (1-3 PM)</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="afternoon"></div>
+                        </div>
+                        <span class="percentage" data-option="afternoon">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Evening (5-7 PM)</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="evening"></div>
+                        </div>
+                        <span class="percentage" data-option="evening">0%</span>
+                    </div>
+                    <p class="total-votes">Total votes: <span id="total-1">0</span></p>
+                </div>
+            </div>
+
+            <!-- Poll 2 -->
+            <div class="poll-container" id="poll-2">
+                <h2>Which service improvement is most important?</h2>
+                <form class="poll-form" data-poll="2">
+                    <label class="option">
+                        <input type="radio" name="poll2" value="speed">
+                        <span class="option-text">Faster response times</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll2" value="quality">
+                        <span class="option-text">Higher quality deliverables</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll2" value="communication">
+                        <span class="option-text">Better communication</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll2" value="pricing">
+                        <span class="option-text">More competitive pricing</span>
+                    </label>
+                    <button type="submit" class="vote-btn">Vote</button>
+                </form>
+                <div class="results" id="results-2" style="display: none;">
+                    <h3>Results:</h3>
+                    <div class="result-item">
+                        <span>Faster response times</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="speed"></div>
+                        </div>
+                        <span class="percentage" data-option="speed">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Higher quality deliverables</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="quality"></div>
+                        </div>
+                        <span class="percentage" data-option="quality">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Better communication</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="communication"></div>
+                        </div>
+                        <span class="percentage" data-option="communication">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>More competitive pricing</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="pricing"></div>
+                        </div>
+                        <span class="percentage" data-option="pricing">0%</span>
+                    </div>
+                    <p class="total-votes">Total votes: <span id="total-2">0</span></p>
+                </div>
+            </div>
+
+            <!-- Poll 3 -->
+            <div class="poll-container" id="poll-3">
+                <h2>How satisfied are you with our current service?</h2>
+                <form class="poll-form" data-poll="3">
+                    <label class="option">
+                        <input type="radio" name="poll3" value="very-satisfied">
+                        <span class="option-text">Very Satisfied</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll3" value="satisfied">
+                        <span class="option-text">Satisfied</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll3" value="neutral">
+                        <span class="option-text">Neutral</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll3" value="dissatisfied">
+                        <span class="option-text">Dissatisfied</span>
+                    </label>
+                    <label class="option">
+                        <input type="radio" name="poll3" value="very-dissatisfied">
+                        <span class="option-text">Very Dissatisfied</span>
+                    </label>
+                    <button type="submit" class="vote-btn">Vote</button>
+                </form>
+                <div class="results" id="results-3" style="display: none;">
+                    <h3>Results:</h3>
+                    <div class="result-item">
+                        <span>Very Satisfied</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="very-satisfied"></div>
+                        </div>
+                        <span class="percentage" data-option="very-satisfied">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Satisfied</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="satisfied"></div>
+                        </div>
+                        <span class="percentage" data-option="satisfied">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Neutral</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="neutral"></div>
+                        </div>
+                        <span class="percentage" data-option="neutral">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Dissatisfied</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="dissatisfied"></div>
+                        </div>
+                        <span class="percentage" data-option="dissatisfied">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Very Dissatisfied</span>
+                        <div class="progress-bar">
+                            <div class="progress" data-option="very-dissatisfied"></div>
+                        </div>
+                        <span class="percentage" data-option="very-dissatisfied">0%</span>
+                    </div>
+                    <p class="total-votes">Total votes: <span id="total-3">0</span></p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Client Polling System. Thank you for your feedback!</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
